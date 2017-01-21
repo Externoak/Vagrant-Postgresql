@@ -1,0 +1,50 @@
+---
+- hosts: Postgresql1
+
+  sudo: true
+  tasks:
+
+     - name: ScriptM
+       command: /usr/bin/expect DB/sshM.sh
+       become: true
+       become_user: postgres
+       when: inventory_hostname == "Postgresql1"
+
+     - name: Start Back
+       sudo_user: postgres
+       shell: psql -c "select pg_start_backup('initial_backup');"
+       ignore_errors: yes
+       when: inventory_hostname == "Postgresql1"
+
+
+     - name: Start rsync
+       sudo_user: postgres
+       shell: sh DB/syn.sh
+       ignore_errors: yes
+       when: inventory_hostname == "Postgresql1"
+
+     - name: Stop backup
+       sudo_user: postgres
+       shell: psql -c "select pg_stop_backup();"
+       ignore_errors: yes
+       when: inventory_hostname == "Postgresql1"
+
+
+- hosts: Postgresql2
+
+  sudo: true
+  tasks:
+
+    - name: Stopping Postgresql
+      service:
+        name: postgresql
+        state: stopped
+
+    - name: Copying recovery
+      command: cp -r DB/recovery.conf /var/lib/postgresql/9.3/main/recovery.conf
+
+    - name: Starting Postgresql
+      service:
+        name: postgresql
+        state: started
+

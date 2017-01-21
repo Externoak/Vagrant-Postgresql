@@ -1,0 +1,129 @@
+- name: Config Languague
+  command: locale-gen es_ES.UTF-8
+
+- name: Install Postgres
+  apt: name={{ item }} update_cache=yes state=present
+  sudo: yes
+  with_items:
+  - postgresql
+  - postgresql-contrib
+  - postgresql-client
+  - libpq-dev
+  - python-psycopg2
+  - expect
+
+- name: Rep user
+  sudo_user: postgres
+  shell: psql -c "CREATE USER rep REPLICATION LOGIN CONNECTION LIMIT 1 ENCRYPTED PASSWORD 'vagrant';"
+  ignore_errors: yes
+
+- name: Set Postgres Password
+  sudo_user: postgres
+  shell: psql -c "ALTER USER postgres PASSWORD 'vagrant';"
+  ignore_errors: yes
+
+- name: Create database
+  sudo_user: postgres
+  postgresql_db: name=Adventureworks
+
+- name: Create postgres user
+  postgresql_user: name=vagrant password=vagrant
+  become: true
+  become_user: postgres
+
+- replace:
+    dest=/etc/postgresql/9.3/main/pg_hba.conf
+    regexp='local   all             postgres                                peer'
+    replace='local   all             postgres                                trust'
+    backup=yes
+
+- replace:
+    dest=/etc/postgresql/9.3/main/pg_hba.conf
+    regexp='host    all             all             127.0.0.1/32            md5'
+    replace='host    all             all             {{ ansible_eth1.ipv4.address }}/24            md5'
+
+- replace:
+    dest=/etc/postgresql/9.3/main/postgresql.conf
+    regexp='#listen_addresses = 'localhost''
+    replace='listen_addresses = '*''
+
+- replace:
+    dest=/etc/postgresql/9.3/main/postgresql.conf
+    regexp='#wal_level = minimal'
+    replace='wal_level = hot_standby'
+
+- replace:
+    dest=/etc/postgresql/9.3/main/pg_hba.conf
+    regexp='#host    replication     postgres        ::1/128                 md5'
+    replace='host    replication     rep             192.168.80.4/24         md5'
+
+- replace:
+    dest=/etc/postgresql/9.3/main/pg_hba.conf
+    regexp='#host    replication     postgres        127.0.0.1/32            md5'
+    replace='host    replication     rep             192.168.80.3/24         md5'
+
+- replace:
+    dest=/etc/postgresql/9.3/main/postgresql.conf
+    regexp='#archive_mode = off'
+    replace='archive_mode = on'
+
+- replace:
+    dest=/etc/postgresql/9.3/main/postgresql.conf
+    regexp="#archive_command = ''"
+    replace="archive_command = 'cd .'"
+
+- replace:
+    dest=/etc/postgresql/9.3/main/postgresql.conf
+    regexp='#max_wal_senders = 0'
+    replace='max_wal_senders = 1'
+
+- replace:
+    dest=/etc/postgresql/9.3/main/postgresql.conf
+    regexp='#hot_standby = off'
+    replace='hot_standby = on'
+
+
+- name: Restarting Postgresql
+  service:
+    name: postgresql
+    state: restarted
+
+- postgresql_privs:
+    db: Adventureworks
+    privs: ALL
+    type: database
+    obj: Adventureworks
+    role: vagrant
+
+- name: Schema Change
+  sudo_user: postgres
+  shell: psql -c "ALTER DEFAULT PRIVILEGES FOR ROLE vagrant IN SCHEMA public GRANT SELECT ON TABLES TO vagrant;"
+  when: inventory_hostname == "Postgresql1"
+
+
+- name: Update CSV
+  command: ruby DB/update_csvs.rb
+  when: inventory_hostname == "Postgresql1" 
+
+- name: Import DB
+  sudo_user: postgres
+  shell: psql -d Adventureworks < /home/vagrant/DB/install.sql
+  when: inventory_hostname == "Postgresql1"
+
+
+- user:
+    name: postgres
+    generate_ssh_key: yes
+    ssh_key_bits: 2048
+    ssh_key_file: .ssh/id_rsa
+
+
+- name: Set pass
+  shell: echo "postgres:vagrant" | chpasswd
+
+- name: ScriptS
+  command: /usr/bin/expect DB/sshS.sh 
+  become: true
+  become_user: postgres
+  when: inventory_hostname == "Postgresql2" 
+
