@@ -31,6 +31,7 @@ Vagrant.configure("2") do |config|
     end
   end
 
-config.vm.provision :ansible do |ansible|
+ config.vm.provision :ansible do |ansible|
     ansible.playbook = "postgresql/tasks/main.yml"
+ end
 end
