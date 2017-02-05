@@ -31,6 +31,27 @@ Vagrant.configure("2") do |config|
     end
   end
 
+  config.vm.define "HAProxy" do |config|
+    config.vm.box = "ubuntu/trusty64"
+    config.vm.box_url = "https://atlas.hashicorp.com/ubuntu/boxes/trusty64"
+    config.vm.hostname = "HAProxy"
+
+    config.vm.network :"public_network"
+    config.vm.network "private_network", ip: "192.168.80.2"
+    config.vm.synced_folder "haproxy/conf", "/home/vagrant/conf"
+     
+    
+   config.vm.provider :virtualbox do |v|
+      v.customize ["modifyvm", :id, "--memory", 512]
+      v.customize ["modifyvm", :id, "--name", "HAProxy"] 
+   end
+
+   config.vm.provision :ansible do |ansible|
+    ansible.playbook = "haproxy/tasks/main.yml"
+   end
+
+end
+
  config.vm.provision :ansible do |ansible|
     ansible.playbook = "postgresql/tasks/main.yml"
  end

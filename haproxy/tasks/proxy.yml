@@ -1,0 +1,22 @@
+- name: Config Languague
+  command: locale-gen es_ES.UTF-8
+
+- name: Install Haproxy
+  apt: name={{ item }} update_cache=yes state=present
+  sudo: yes
+  with_items:
+  - haproxy
+
+- replace:
+    dest=/etc/default/haproxy
+    regexp='ENABLED=0'
+    replace='ENABLED=1'
+    backup=yes
+
+- name: Copying HAProxy Conf
+  command: cp -r conf/haproxy.cfg /etc/haproxy/haproxy.cfg
+
+- name: Starting Haproxy
+  service:
+    name: haproxy
+    state: restarted
