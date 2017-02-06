@@ -35,16 +35,14 @@
   sudo: true
   tasks:
 
-    - name: Stopping Postgresql
-      service:
-        name: postgresql
-        state: stopped
-
     - name: Copying recovery
       command: cp -r DB/recovery.conf /var/lib/postgresql/9.3/main/recovery.conf
 
-    - name: Starting Postgresql
-      service:
-        name: postgresql
-        state: started
+
+    - name: Restarting Slave
+      shell: sleep 2 && shutdown -r now "Ansible updates triggered"
+      async: 1
+      poll: 0
+      sudo: true
+      ignore_errors: true
 
