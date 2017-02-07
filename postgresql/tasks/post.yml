@@ -11,6 +11,14 @@
   - libpq-dev
   - python-psycopg2
   - expect
+  - apache2
+  - apache2-utils
+  - libcgi-fast-perl
+  - libapache2-mod-fcgid
+  - libdbd-pg-perl
+  - unzip
+  - python3-setuptools
+  - python-setuptools
 
 - name: Rep user
   sudo_user: postgres

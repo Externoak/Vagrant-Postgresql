@@ -1,0 +1,46 @@
+---
+- name: Instal munin
+  apt: name={{ item }} state=present
+  with_items:
+  - munin
+  - munin-plugins-extra
+  
+- name: Directory Munin
+  file: path=/var/www/html/munin state=directory owner=munin group=munin
+  
+- file:
+    path: /var/www/html/munin
+    mode: 0777
+
+- name: Install pexpect for Ansible
+  command: easy_install pexpect
+  
+- expect:
+    command: htpasswd -cm /etc/munin/munin-htpasswd muninadmin 
+    responses:
+        (?i)password: "vagrant"
+        (?i)new password: "vagrant"    
+  
+  
+- name: Config munin
+  template:
+   src=templates/munin.conf.j2
+   dest=/etc/munin/munin.conf
+   
+- name: Config apache munin
+  template:
+   src=templates/apache.conf.j2
+   dest=/etc/munin/apache.conf
+   
+- script: templates/plugin.sh
+  
+- name: Config plugins 
+  template:
+   src=templates/munin-node.j2
+   dest=/etc/munin/plugin-conf.d/munin-node
+   
+- name: Restarting Postgresql
+  service:
+    name: munin
+    state: restarted
+  

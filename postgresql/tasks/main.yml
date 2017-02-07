@@ -9,3 +9,4 @@
  
  
     - include: post.yml
+    - include: munin.yml
