@@ -1,5 +1,5 @@
 ---
-- name: Instal munin
+- name: Install munin
   apt: name={{ item }} state=present
   with_items:
   - munin
@@ -39,7 +39,7 @@
    src=templates/munin-node.j2
    dest=/etc/munin/plugin-conf.d/munin-node
    
-- name: Restarting Postgresql
+- name: Restarting Munin
   service:
     name: munin
     state: restarted
